@@ -9,6 +9,7 @@ export function Board({ squares, onSquareClick, disabled }) {
           value={value}
           disabled={disabled || Boolean(value)}
           onClick={() => onSquareClick(index)}
+          ariaLabel={value ? `Cell ${index + 1} contains ${value}` : `Cell ${index + 1}, empty`}
         />
       ))}
     </div>

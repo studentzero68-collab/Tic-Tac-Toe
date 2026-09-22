@@ -1,5 +1,5 @@
-export function Square({ value, onClick, disabled }) {
-  const label = value ? `${value}` : 'Empty square'
+export function Square({ value, onClick, disabled, ariaLabel }) {
+  const label = ariaLabel || (value ? `${value}` : 'Empty square')
 
   return (
     <button
@@ -8,6 +8,7 @@ export function Square({ value, onClick, disabled }) {
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      aria-disabled={disabled}
     >
       {value}
     </button>

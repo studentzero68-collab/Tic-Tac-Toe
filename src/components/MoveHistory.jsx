@@ -5,7 +5,8 @@ export function MoveHistory({ moves, currentStep, onJumpToMove }) {
       <ol className="history-list">
         {moves.map((move) => {
           const isSelected = move.moveNumber === currentStep
-          const label = move.moveNumber === 0 ? 'Game Start' : `Go to Move ${move.moveNumber}`
+          const label =
+            move.moveNumber === 0 ? 'Game Start' : `Go to Move ${move.moveNumber}: ${move.description}`
 
           return (
             <li key={move.moveNumber} className={isSelected ? 'history-item active' : 'history-item'}>
@@ -14,6 +15,7 @@ export function MoveHistory({ moves, currentStep, onJumpToMove }) {
                 className="history-button"
                 onClick={() => onJumpToMove(move.moveNumber)}
                 aria-current={isSelected ? 'true' : undefined}
+                aria-label={label}
               >
                 {label}
               </button>

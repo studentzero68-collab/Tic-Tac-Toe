@@ -22,6 +22,12 @@ export const initialState = {
   ],
 }
 
+function getBoardAfterMove(board, index, player) {
+  const nextBoard = [...board]
+  nextBoard[index] = player
+  return nextBoard
+}
+
 export function gameReducer(state, action) {
   switch (action.type) {
     case 'MAKE_MOVE': {
@@ -31,11 +37,10 @@ export function gameReducer(state, action) {
         return state
       }
 
-      const nextBoard = [...state.board]
-      nextBoard[index] = state.currentPlayer
-
+      const nextBoard = getBoardAfterMove(state.board, index, state.currentPlayer)
       const nextWinner = checkWinner(nextBoard)
       const nextDraw = !nextWinner && checkDraw(nextBoard)
+
       const nextHistory = state.history.slice(0, state.step + 1)
       const nextMoveHistory = state.moveHistory.slice(0, state.step + 1)
 
@@ -52,9 +57,10 @@ export function gameReducer(state, action) {
       return {
         ...state,
         board: nextBoard,
-        currentPlayer: nextWinner || nextDraw ? state.currentPlayer : getNextPlayer(state.currentPlayer),
         winner: nextWinner,
         draw: nextDraw,
+        currentPlayer:
+          nextWinner || nextDraw ? state.currentPlayer : getNextPlayer(state.currentPlayer),
         step: nextHistory.length - 1,
         history: nextHistory,
         moveHistory: nextMoveHistory,
@@ -65,16 +71,14 @@ export function gameReducer(state, action) {
       return initialState
 
     case 'JUMP_TO_MOVE': {
-      const moveNumber = action.moveNumber
-      const targetStep = Math.max(0, Math.min(moveNumber, state.history.length - 1))
+      const targetStep = Math.max(0, Math.min(action.moveNumber, state.history.length - 1))
       const targetBoard = state.history[targetStep]
       const targetWinner = checkWinner(targetBoard)
       const targetDraw = !targetWinner && checkDraw(targetBoard)
 
-      const nextPlayer = targetWinner
-        ? targetWinner
-        : targetDraw
-          ? 'X'
+      const nextPlayer =
+        targetWinner || targetDraw
+          ? targetWinner || 'X'
           : targetStep % 2 === 0
             ? 'X'
             : 'O'
@@ -82,9 +86,9 @@ export function gameReducer(state, action) {
       return {
         ...state,
         board: targetBoard,
-        currentPlayer: nextPlayer,
         winner: targetWinner,
         draw: targetDraw,
+        currentPlayer: nextPlayer,
         step: targetStep,
         history: state.history.slice(0, targetStep + 1),
         moveHistory: state.moveHistory.slice(0, targetStep + 1),
