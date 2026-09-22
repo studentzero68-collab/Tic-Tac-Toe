@@ -5,24 +5,97 @@ import {
   getNextPlayer,
 } from '../utils/gameLogic'
 
-export const initialState = {
-  board: createEmptyBoard(),
-  currentPlayer: 'X',
-  winner: null,
-  draw: false,
-  step: 0,
-  history: [createEmptyBoard()],
-  moveHistory: [
+function createStartingMoveHistory() {
+  return [
     {
       moveNumber: 0,
       player: null,
       square: null,
       description: 'Game Start',
     },
-  ],
-  gameMode: 'pvp',
-  difficulty: 'medium',
-  isCpuThinking: false,
+  ]
+}
+
+function createEmptyScores() {
+  return {
+    pvp: {
+      xWins: 0,
+      oWins: 0,
+      draws: 0,
+    },
+    cpu: {
+      wins: 0,
+      losses: 0,
+      draws: 0,
+    },
+  }
+}
+
+function createRoundState() {
+  const emptyBoard = createEmptyBoard()
+
+  return {
+    board: emptyBoard,
+    currentPlayer: 'X',
+    winner: null,
+    draw: false,
+    step: 0,
+    history: [emptyBoard],
+    moveHistory: createStartingMoveHistory(),
+    isCpuThinking: false,
+    roundOver: false,
+    gameStatus: null,
+  }
+}
+
+function getRoundStatus(gameMode, winner, draw) {
+  if (draw) {
+    return 'Draw!'
+  }
+
+  if (!winner) {
+    return null
+  }
+
+  if (gameMode === 'cpu') {
+    return winner === 'X' ? 'You Win!' : 'You Lose!'
+  }
+
+  return `Winner: ${winner}`
+}
+
+function applyRoundScore(scores, gameMode, winner, draw) {
+  if (gameMode === 'cpu') {
+    const nextCpuScores = { ...scores.cpu }
+
+    if (draw) {
+      nextCpuScores.draws += 1
+    } else if (winner === 'X') {
+      nextCpuScores.wins += 1
+    } else {
+      nextCpuScores.losses += 1
+    }
+
+    return {
+      ...scores,
+      cpu: nextCpuScores,
+    }
+  }
+
+  const nextPvpScores = { ...scores.pvp }
+
+  if (draw) {
+    nextPvpScores.draws += 1
+  } else if (winner === 'X') {
+    nextPvpScores.xWins += 1
+  } else {
+    nextPvpScores.oWins += 1
+  }
+
+  return {
+    ...scores,
+    pvp: nextPvpScores,
+  }
 }
 
 function getBoardAfterMove(board, index, player) {
@@ -31,12 +104,19 @@ function getBoardAfterMove(board, index, player) {
   return nextBoard
 }
 
+export const initialState = {
+  ...createRoundState(),
+  gameMode: 'pvp',
+  difficulty: 'medium',
+  scores: createEmptyScores(),
+}
+
 export function gameReducer(state, action) {
   switch (action.type) {
     case 'MAKE_MOVE': {
       const { index } = action
 
-      if (state.winner || state.draw || state.board[index] || state.isCpuThinking) {
+      if (state.winner || state.draw || state.board[index] || state.isCpuThinking || state.roundOver) {
         return state
       }
 
@@ -71,31 +151,41 @@ export function gameReducer(state, action) {
         step: nextHistory.length - 1,
         history: nextHistory,
         moveHistory: nextMoveHistory,
+        roundOver: Boolean(nextWinner || nextDraw),
       }
 
       if (nextWinner || nextDraw) {
-        return nextState
+        return {
+          ...nextState,
+          scores: applyRoundScore(state.scores, state.gameMode, nextWinner, nextDraw),
+          gameStatus: getRoundStatus(state.gameMode, nextWinner, nextDraw),
+          isCpuThinking: false,
+        }
       }
 
       if (state.gameMode === 'cpu' && nextState.currentPlayer === 'O') {
         return {
           ...nextState,
           isCpuThinking: true,
+          gameStatus: null,
         }
       }
 
       return {
         ...nextState,
         isCpuThinking: false,
+        gameStatus: null,
       }
     }
 
     case 'SET_GAME_MODE': {
       const nextGameMode = action.gameMode
+
       return {
-        ...initialState,
+        ...createRoundState(),
         gameMode: nextGameMode,
         difficulty: state.difficulty,
+        scores: state.scores,
       }
     }
 
@@ -106,7 +196,7 @@ export function gameReducer(state, action) {
       }
 
     case 'CPU_MOVE': {
-      if (state.winner || state.draw || state.gameMode !== 'cpu') {
+      if (state.winner || state.draw || state.gameMode !== 'cpu' || state.roundOver) {
         return state
       }
 
@@ -132,7 +222,7 @@ export function gameReducer(state, action) {
         description: `Move ${moveNumber}: O → Square ${cpuIndex + 1}`,
       })
 
-      return {
+      const nextState = {
         ...state,
         board: nextBoard,
         winner: nextWinner,
@@ -142,14 +232,47 @@ export function gameReducer(state, action) {
         history: nextHistory,
         moveHistory: nextMoveHistory,
         isCpuThinking: false,
+        roundOver: Boolean(nextWinner || nextDraw),
+      }
+
+      if (nextWinner || nextDraw) {
+        return {
+          ...nextState,
+          scores: applyRoundScore(state.scores, state.gameMode, nextWinner, nextDraw),
+          gameStatus: getRoundStatus(state.gameMode, nextWinner, nextDraw),
+        }
+      }
+
+      return {
+        ...nextState,
+        gameStatus: null,
       }
     }
 
-    case 'RESET_GAME':
+    case 'NEXT_GAME':
       return {
-        ...initialState,
+        ...state,
+        ...createRoundState(),
         gameMode: state.gameMode,
         difficulty: state.difficulty,
+        scores: state.scores,
+      }
+
+    case 'RESET_SCORE':
+      return {
+        ...state,
+        ...createRoundState(),
+        gameMode: state.gameMode,
+        difficulty: state.difficulty,
+        scores: createEmptyScores(),
+      }
+
+    case 'RESET_GAME':
+      return {
+        ...createRoundState(),
+        gameMode: state.gameMode,
+        difficulty: state.difficulty,
+        scores: state.scores,
       }
 
     case 'JUMP_TO_MOVE': {
@@ -175,6 +298,8 @@ export function gameReducer(state, action) {
         history: state.history.slice(0, targetStep + 1),
         moveHistory: state.moveHistory.slice(0, targetStep + 1),
         isCpuThinking: false,
+        roundOver: Boolean(targetWinner || targetDraw),
+        gameStatus: getRoundStatus(state.gameMode, targetWinner, targetDraw),
       }
     }
 

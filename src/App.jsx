@@ -18,6 +18,7 @@ function App() {
       state.currentPlayer !== 'O' ||
       state.winner ||
       state.draw ||
+      state.roundOver ||
       !state.isCpuThinking
     ) {
       return undefined
@@ -37,21 +38,43 @@ function App() {
     state.draw,
     state.gameMode,
     state.isCpuThinking,
+    state.roundOver,
     state.winner,
     state.difficulty,
   ])
 
   const statusMessage = state.isCpuThinking
     ? 'CPU is thinking...'
-    : state.gameMode === 'cpu' && state.currentPlayer === 'O'
-      ? "CPU's Turn"
-      : state.gameMode === 'cpu' && state.currentPlayer === 'X'
-        ? 'Your Turn'
-        : getStatusMessage({
-            winner: state.winner,
-            draw: state.draw,
-            currentPlayer: state.currentPlayer,
-          })
+    : state.roundOver
+      ? state.draw
+        ? 'Draw!'
+        : state.gameMode === 'cpu'
+          ? state.winner === 'X'
+            ? 'You Win!'
+            : 'You Lose!'
+          : `Winner: ${state.winner}`
+      : state.gameMode === 'cpu' && state.currentPlayer === 'O'
+        ? "CPU's Turn"
+        : state.gameMode === 'cpu' && state.currentPlayer === 'X'
+          ? 'Your Turn'
+          : getStatusMessage({
+              winner: state.winner,
+              draw: state.draw,
+              currentPlayer: state.currentPlayer,
+            })
+
+  const scoreboard =
+    state.gameMode === 'cpu'
+      ? [
+          { label: 'Wins', value: state.scores.cpu.wins },
+          { label: 'Losses', value: state.scores.cpu.losses },
+          { label: 'Draws', value: state.scores.cpu.draws },
+        ]
+      : [
+          { label: 'X Wins', value: state.scores.pvp.xWins },
+          { label: 'O Wins', value: state.scores.pvp.oWins },
+          { label: 'Draws', value: state.scores.pvp.draws },
+        ]
 
   const handleSquareClick = (index) => {
     dispatch({ type: 'MAKE_MOVE', index })
@@ -59,6 +82,14 @@ function App() {
 
   const handleReset = () => {
     dispatch({ type: 'RESET_GAME' })
+  }
+
+  const handleNextGame = () => {
+    dispatch({ type: 'NEXT_GAME' })
+  }
+
+  const handleResetScore = () => {
+    dispatch({ type: 'RESET_SCORE' })
   }
 
   const handleJumpToMove = (moveNumber) => {
@@ -77,6 +108,15 @@ function App() {
     <main className="app-shell">
       <section className="game-card" aria-label="Tic-Tac-Toe game">
         <h1>Tic-Tac-Toe</h1>
+
+        <div className="scoreboard" aria-label="Scoreboard">
+          {scoreboard.map((entry) => (
+            <div key={entry.label} className="score-item">
+              <span>{entry.label}</span>
+              <strong>{entry.value}</strong>
+            </div>
+          ))}
+        </div>
 
         <div className="mode-toggle" aria-label="Game mode selector">
           <button
@@ -115,14 +155,31 @@ function App() {
 
         <GameStatus message={statusMessage} />
 
-        <button type="button" className="reset-button" onClick={handleReset}>
-          Restart Game
+        <div className="action-row">
+          <button type="button" className="reset-button" onClick={handleReset}>
+            Restart Game
+          </button>
+          {state.roundOver && (
+            <button type="button" className="next-game-button" onClick={handleNextGame}>
+              Next Game
+            </button>
+          )}
+        </div>
+
+        <button type="button" className="secondary-button" onClick={handleResetScore}>
+          Reset Score
         </button>
 
         <Board
           squares={state.board}
           onSquareClick={handleSquareClick}
-          disabled={Boolean(state.winner) || state.draw || state.isCpuThinking || (state.gameMode === 'cpu' && state.currentPlayer === 'O')}
+          disabled={
+            Boolean(state.winner) ||
+            state.draw ||
+            state.roundOver ||
+            state.isCpuThinking ||
+            (state.gameMode === 'cpu' && state.currentPlayer === 'O')
+          }
         />
       </section>
 
