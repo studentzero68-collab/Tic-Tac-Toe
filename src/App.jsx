@@ -13,7 +13,13 @@ function App() {
   const [state, dispatch] = useReducer(gameReducer, initialState)
 
   useEffect(() => {
-    if (state.gameMode !== 'cpu' || state.currentPlayer !== 'O' || state.winner || state.draw) {
+    if (
+      state.gameMode !== 'cpu' ||
+      state.currentPlayer !== 'O' ||
+      state.winner ||
+      state.draw ||
+      !state.isCpuThinking
+    ) {
       return undefined
     }
 
@@ -22,10 +28,18 @@ function App() {
       if (nextMove !== null && nextMove !== undefined) {
         dispatch({ type: 'CPU_MOVE', index: nextMove })
       }
-    }, 400)
+    }, 450)
 
     return () => clearTimeout(timer)
-  }, [state.board, state.currentPlayer, state.draw, state.gameMode, state.winner, state.difficulty])
+  }, [
+    state.board,
+    state.currentPlayer,
+    state.draw,
+    state.gameMode,
+    state.isCpuThinking,
+    state.winner,
+    state.difficulty,
+  ])
 
   const statusMessage = state.isCpuThinking
     ? 'CPU is thinking...'

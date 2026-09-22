@@ -84,7 +84,10 @@ export function gameReducer(state, action) {
         }
       }
 
-      return nextState
+      return {
+        ...nextState,
+        isCpuThinking: false,
+      }
     }
 
     case 'SET_GAME_MODE': {
