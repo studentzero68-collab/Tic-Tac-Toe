@@ -17,7 +17,8 @@ export function MoveHistory({ moves, currentStep, onJumpToMove }) {
                 aria-current={isSelected ? 'true' : undefined}
                 aria-label={label}
               >
-                {label}
+                <span>{label}</span>
+                {isSelected && <span className="history-current">Current</span>}
               </button>
             </li>
           )
